@@ -301,12 +301,17 @@ Interceptor.attach(nw_connection_receive_pointer, {
 
 Interceptor.attach(nw_connection_create_pointer, {
     onEnter: function(args) {
-        dump_parameters(args[1]);
+        this.gargs = new Array(2);
+        for (var i = 0; i < 2; i++) this.gargs[i] = args[i];
     },
     onLeave: function(retval) {
-        console.log("nw_connection_create = " + dump_connection(retval));
+        var args = this.gargs;
+        if (dump_port(retval) != 443 && dump_port(retval) != 80) {
+            console.log("nw_connection_create = " + dump_connection(retval) + "    " + dump_parameters(args[1]));
+        }
     }
 });
+
 
 Interceptor.attach(nw_listener_start_pointer, {
     onEnter: function(args) {
