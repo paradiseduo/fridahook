@@ -150,3 +150,66 @@ Interceptor.attach(connect, {
         console.log('\n connect called from:\n' +Thread.backtrace(this.context, Backtracer.ACCURATE).map(DebugSymbol.fromAddress).join('\n') + '\n');
     }
 });
+
+var connect = Module.findExportByName("libsystem_kernel.dylib", "__sendmsg_nocancel");
+Interceptor.attach(connect, {
+    onEnter: function(args) {
+        console.log(
+            hexdump(args[1], {
+                offset: 0,
+                length: 1024,
+                header: false,
+                ansi: false,
+            })
+        );
+
+        const msgPtr = args[1];
+        const msg_name = Memory.readPointer(msgPtr.add(0)); 
+        console.log("msg_name: " + msg_name);
+
+        const msgNameLen = Memory.readU32(msgPtr.add(8)); 
+        console.log("msg_namelen: " + msgNameLen);
+
+        const iovPtr = Memory.readPointer(msgPtr.add(16)); 
+        console.log("iovPtr: " + iovPtr);
+
+        const iovLen = Memory.readU32(msgPtr.add(20)); 
+        console.log("msg_iovlen: " + iovLen);
+
+        const msg_control = Memory.readPointer(msgPtr.add(32));
+        console.log("msg_control: " + msg_control);
+
+        const msg_controllen = Memory.readU32(msgPtr.add(40)); 
+        console.log("msg_controllen: " + msg_controllen);
+
+        const msg_flags = Memory.readU32(msgPtr.add(44)); 
+        console.log("msg_flags: " + msg_flags);
+
+        if ( msg_name != 0x0 ) {
+            const msg_name_ss_len = Memory.readU8(msg_name); 
+            console.log("msg_name_ss_len: " + msg_name_ss_len);
+            const msg_name_ss_family = Memory.readU8(msg_name.add(1)); 
+            console.log("msg_name_ss_family: " + msg_name_ss_family);
+            const msg_name_ss_pad1 = Memory.readCString(msg_name.add(2)); 
+            console.log("msg_name_ss_pad1: " + msg_name_ss_pad1);
+            const msg_name_ss_align = Memory.readU64(msg_name.add(8)); 
+            console.log("msg_name_ss_align: " + msg_name_ss_align);
+            const msg_name_ss_pad2 = Memory.readCString(msg_name.add(16)); 
+            console.log("msg_name_ss_pad2: " + msg_name_ss_pad2);
+
+            var dest_addr = msg_name;
+            var sin_family = Memory.readU8(dest_addr.add(1));
+            var sin_port = Memory.readU16(dest_addr.add(2));
+            sin_port = ((sin_port&0xff)<<8)|((sin_port>>8)&0xff);
+            var sin_addr = Memory.readU32(dest_addr.add(4));
+            var sin_ip = (sin_addr&0xff).toString() + '.' + ((sin_addr>>8)&0xff).toString() + '.' + ((sin_addr>>16)&0xff).toString() + '.' + ((sin_addr>>24)&0xff).toString();
+            console.log(sin_family, sin_port, sin_ip);
+        }
+
+        console.log("================================================================================================================");
+
+    },
+    onLeave: function(retval) {
+
+    }
+});
